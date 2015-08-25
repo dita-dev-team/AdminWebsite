@@ -1,0 +1,184 @@
+{%  extends "base.html" %}
+
+{% block page_content %}
+<div class="page-header">
+    <h1>{% block heading %}{% endblock %}</h1>
+</div>
+<div class="panel panel-default" style="margin-bottom: 1%">
+    <div class="panel-body">
+        <!-- Create button-->
+        <button id="create-btn" class="btn btn-default" data-toggle="modal" data-target="#modal">Create</button>
+        <!-- Logout button-->
+        <a id="logout-btn" class="btn btn-default pull-right" href="{{ url_for('logout') }}">Logout</a>
+    </div>
+</div>
+<!-- Notification alert -->
+<div id="notification" class="alert alert-success" hidden>
+    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+    <strong>Success!</strong> {% if not form.errors %}{{ notification }}{% endif %}
+</div>
+
+<!-- Table content-->
+<table id="table" class="table table-hover table-condensed table-striped table-bordered table-responsive ">
+    {% block table_content %}{% endblock %}
+</table>
+
+<div class="modal fade" id="modal" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">{% block modal_title %}{% endblock %}</h4>
+            </div>
+            <div class="modal-body">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12 center-block">
+                            <p id="update-key" hidden="hidden"></p>
+
+                            <form id="form" class="form-horizontal" method=post action="" data-toggle="validator">
+                                {{ form.hidden_tag() }}
+                                {% block form_groups %}{% endblock %}
+
+                                <button type="submit" name="submit" id="create" class="btn btn-default" value="create">
+                                    Create
+                                </button>
+                                <button type="submit" name="submit" id="update" class="btn btn-default" value="update">
+                                    Update
+                                </button>
+                                <button type="submit" name="submit" id="delete" class="btn btn-default" value="delete">
+                                    Delete
+                                </button>
+                            </form>
+                            <div id="error-message" class="alert alert-danger" hidden="hidden">
+                                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                                <strong>Error!</strong>
+                                {% if form.errors %}
+                                {{ form.errors_list[0][0] }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    // Handle click events of the view buttons
+    $("#table button").on('click', function (event) {
+        var id_tag = event.target.name;
+        if (id_tag === "") {
+            return;
+        }
+        else {
+            url = { % block
+            url %
+        }
+        {%
+            endblock %
+        }
+        +id_tag;
+        $.getJSON(url, function (result) {
+            {%
+                block
+                set_details %
+            }
+            {%
+                endblock %
+            }
+
+            $("#error-message").hide();
+            $("#create").hide();
+            $("#update").show();
+            $("#delete").show();
+        })
+    }
+    })
+    ;
+
+    // Handle click event of the create button
+    $("#create-btn").on('click', function () {
+        {%
+            block
+            set_blank %
+        }
+        {%
+            endblock %
+        }
+
+        $("#error-message").hide();
+        $("#create").show();
+        $("#update").hide();
+        $("#delete").hide();
+    });
+
+    // Intercept click event on update button
+    $('#update').on('click', function () {
+        $('#form').submit(function () {
+            $(this).append($('<input>').attr('type', 'hidden')
+                            .attr('name', 'update-key').val($('#update-key').val())
+            )
+        })
+    });
+
+    $(document).ready(function () {
+        // Handle notification alerts
+        var pageNotification = { %
+        if notification %}
+        true
+        {% else %
+        }
+        false
+        {%
+            endif %
+        }
+        ;
+        if (pageNotification) {
+            $('#notification').show();
+        }
+        else {
+            $('#notification').hide();
+        }
+
+        // Handle form errors if any
+        var formErrors = { %
+        if form.errors %}
+        true
+        {% else %
+        }
+        false
+        {%
+            endif %
+        }
+        ;
+        var formCreate = { %
+        if form.crud_operation == 'create' %}
+        true
+        {% else %
+        }
+        false
+        {%
+            endif %
+        }
+        ;
+
+        if (formErrors) {
+            if (formCreate) {
+                $("#update").hide();
+                $("#delete").hide();
+            }
+            else {
+                $("#create").hide();
+            }
+            $('#error-message').show();
+            $('.modal').modal('show');
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,60 @@
+{%  extends "base.html" %}
+
+{% set active_page = "login" %}
+
+{% block title %}Dita Admin Login {% endblock %}
+
+{% block page_content %}
+<form class="form-horizontal" method=post action="" data-toggle="validator">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <div class="col-sm-2">
+            {{ form.username.label }}
+        </div>
+        <div class="col-sm-6">
+            {{ form.username(class_="form-control", placeholder="Username", required=True) }}
+        </div>
+    </div>
+    <div class="form-group">
+        <div class="col-sm-2">
+            {{ form.password.label }}
+        </div>
+        <div class="col-sm-6">
+            {{ form.password(class_="form-control", placeholder="Password", required=True) }}
+        </div>
+    </div>
+    <div id="error-message" class="alert alert-danger" hidden="hidden">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        <strong>Error!</strong>
+        {% if form.errors %}
+        {{ form.errors_list[0][0] }}
+        {% endif %}
+    </div>
+    <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-10">
+            <button class="btn btn-default" type="submit">Login</button>
+        </div>
+    </div>
+</form>
+<script>
+    // Handle form errors if any
+    $(document).ready(function () {
+        var formErrors = { %
+        if form.errors %}
+        true
+        {% else %
+        }
+        false
+        {%
+            endif %
+        }
+
+        if (formErrors) {
+            console.log("pass")
+            $('#error-message').show();
+        }
+    })
+</script>
+{% endblock %}
+
+
