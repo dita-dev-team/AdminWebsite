@@ -144,5 +144,5 @@ def laptop(serial):
 
 
 @login_manager.user_loader
-def load_user(userid):
-    return Admin.objects(username_iexact=userid).first()
+def load_user(user_id):
+    return Admin.objects(username_iexact=user_id).first()

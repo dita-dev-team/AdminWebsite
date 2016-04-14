@@ -11,6 +11,6 @@ CsrfProtect(app)
 bcrypt = Bcrypt(app)
 
 db = MongoEngine(app)
-app.session_interface = MongoEngineSessionInterface(db)
+#app.session_interface = MongoEngineSessionInterface(db)
 
 import api.views
