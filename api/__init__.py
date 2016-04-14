@@ -1,14 +1,16 @@
 from flask import Flask
+from flask.ext.mongoengine import MongoEngine, MongoEngineSessionInterface
 from flask_wtf import CsrfProtect
 from flask.ext.bcrypt import Bcrypt
-from flask.ext.sqlalchemy import SQLAlchemy
+
+from api import config
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'Dita Admin'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:root@localhost/dita'
+app.config.from_object(config)
 CsrfProtect(app)
 bcrypt = Bcrypt(app)
-db = SQLAlchemy(app)
-db.create_all()
+
+db = MongoEngine(app)
+app.session_interface = MongoEngineSessionInterface(db)
 
 import api.views

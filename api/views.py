@@ -1,7 +1,7 @@
 from flask import jsonify, redirect, request, render_template, url_for
 from flask.ext.login import current_user, login_required, login_user, logout_user, LoginManager
 
-from api import app, bcrypt, db
+from api import app, bcrypt
 from api.forms import LoginForm, MemberForm, LaptopForm
 from api.models import Admin, Member, Laptop
 
@@ -15,13 +15,10 @@ login_manager.init_app(app)
 def login():
     form = LoginForm(request.form)
     if form.validate_on_submit():
-        admin = db.session.query(Admin).filter_by(username=form.username.data).first()
+        admin = Admin.objects(username__iexact=form.username.data).first()
         if admin:
             if bcrypt.check_password_hash(admin.password, form.password.data):
-                print("pass3")
                 admin.authenticated = True
-                db.session.add(admin)
-                db.session.commit()
                 login_user(admin, remember=True)
 
                 return form.redirect(url_for('index'))
@@ -36,8 +33,6 @@ def login():
 def logout():
     admin = current_user
     admin.authenticated = False
-    db.session.add(admin)
-    db.session.commit()
     logout_user()
     return redirect(url_for('index'))
 
@@ -59,37 +54,40 @@ def members():
     form.crud_operation = request.form['submit'] if 'submit' in request.form else None
     form.update_key = request.form['update-key'] if 'update-key' in request.form else None
     if form.validate_on_submit():
-        member = Member(request.form['id_no'], request.form['name'])
         if request.form['submit'] == 'create':
-            db.session.add(member)
+            member = Member(id_no=request.form['id_no'], name=request.form['name'], major=request.form['major'])
+            member.save()
             notification = "Member created successfully."
         elif request.form['submit'] == 'delete':
-            db.session.query(Member).filter(Member.id_no == member.id_no).delete()
+            member = Member.objects(id_no=request.form['id_no']).first()
+            member.delete()
             notification = "Member deleted successfully."
         elif request.form['submit'] == 'update':
-            db.session.query(Member).filter(Member.id_no == form.update_key).update({'id_no': member.id_no,
-                                                                                     'name': member.name})
+            member = Member.objects(id_no=form.update_key).first()
+            member.id_no = request.form['id_no']
+            member.major = request.form['major']
+            member.update()
             notification = "Member updated successfully."
 
-        db.session.commit()
         return redirect(url_for('members', notification=notification))
 
     if form.errors:
         form.errors_list = list(form.errors.values())
 
-    members = db.session.query(Member).all()
+    members = Member.objects()
     return render_template('members.html', form=form, members=members, notification=notification)
 
 
 @app.route('/member/<id_no>')
 def member(id_no):
-    member = db.session.query(Member).filter_by(id_no=id_no).first()
+    member = Member.objects(id_no=id_no).first()
     response = jsonify({})
 
     if member:
         response = jsonify({
             'id_no': member.id_no,
-            'name': member.name
+            'name': member.name,
+            'major': member.major
         })
 
     return response
@@ -106,39 +104,41 @@ def laptops():
     form.crud_operation = request.form['submit'] if 'submit' in request.form else None
     form.update_key = request.form['update-key'] if 'update-key' in request.form else None
     if form.validate_on_submit():
-        laptop = Laptop(request.form['serial'], request.form['make'], request.form['id_no'])
         if request.form['submit'] == 'create':
-            db.session.add(laptop)
+            member = Member.objects(id_no=request.form['id_no']).first()
+            laptop = Laptop(serial_no=request.form['serial'], make=request.form['make'], owner=member)
+            laptop.save()
             notification = "Laptop created successfully."
         elif request.form['submit'] == 'delete':
-            db.session.query(Laptop).filter(db.func.lower(Laptop.serial) == db.func.lower(laptop.serial)).delete(
-                synchronize_session=False)
+            laptop = Laptop.objects(serial_no=request.form['serial'])
+            laptop.delete()
             notification = "Laptop deleted successfully."
         elif request.form['submit'] == 'update':
-            print(form.update_key)
-            db.session.query(Laptop).filter(db.func.lower(Laptop.serial) == db.func.lower(form.update_key)).update({
-                'serial': laptop.serial, 'make': laptop.make, 'id_no': laptop.id_no}, synchronize_session=False)
+            laptop = Laptop.objects(serial_no__iexact=form.update_key).first()
+            laptop.serial_no = request.form['serial']
+            laptop.make = request.form['make']
+            laptop.owner = Member.objects(id_no=request.form['id_no']).first()
+            laptop.save()
             notification = "Laptop updated successfully."
 
-        db.session.commit()
         return redirect(url_for('laptops', notification=notification))
     if form.errors:
         form.errors_list = list(form.errors.values())
 
-    laptops = db.session.query(Laptop).all()
+    laptops = Laptop.objects()
     return render_template('laptops.html', form=form, laptops=laptops, notification=notification)
 
 
 @app.route('/laptop/<serial>')
 def laptop(serial):
-    laptop = db.session.query(Laptop).filter_by(serial=serial).first()
+    laptop = Laptop.objects(serial_no__iexact=serial).first()
     response = jsonify({})
 
     if member:
         response = jsonify({
             'serial': laptop.serial,
             'make': laptop.make,
-            'id_no': laptop.id_no
+            'owner': laptop.owner.id_no
         })
 
     return response
@@ -146,4 +146,4 @@ def laptop(serial):
 
 @login_manager.user_loader
 def load_user(userid):
-    return Admin.query.get(userid)
+    return Admin.objects(username_iexact=userid).first()
